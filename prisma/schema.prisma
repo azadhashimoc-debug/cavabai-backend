@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  name                String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  styleProfile        UserStyleProfile?
+  messageExamples     UserMessageExample[]
+  assistRequests      AssistRequest[]
+  styleLearningEvents StyleLearningEvent[]
+}
+
+model UserStyleProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  preferredLanguage String  @default("az")
+  communicationTone String  @default("casual")
+  relationshipStyle String  @default("balanced")
+  bio              String?
+  formalityLevel   Int      @default(2)
+  humorLevel       Int      @default(2)
+  flirtLevel       Int      @default(1)
+  brevityLevel     Int      @default(4)
+  emojiLevel       Int      @default(1)
+  avoidWords       String[] @default([])
+  favoritePhrases  String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserMessageExample {
+  id          String   @id @default(cuid())
+  userId      String
+  text        String
+  platform    String?
+  context     String?
+  wasEdited   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AssistRequest {
+  id                  String               @id @default(cuid())
+  userId              String
+  incomingMessage     String
+  mode                String
+  platform            String
+  relationshipContext String
+  analysis            String
+  promptVersion       String               @default("v1")
+  createdAt           DateTime             @default(now())
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies             AssistReply[]
+  styleLearningEvents StyleLearningEvent[]
+}
+
+model AssistReply {
+  id          String               @id @default(cuid())
+  requestId   String
+  label       String
+  text        String
+  isSelected  Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  request     AssistRequest        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  styleLearningEvents StyleLearningEvent[]
+}
+
+model StyleLearningEvent {
+  id             String        @id @default(cuid())
+  userId         String
+  assistRequestId String?
+  assistReplyId  String?
+  eventType      LearningEventType
+  payload        Json
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assistRequest  AssistRequest? @relation(fields: [assistRequestId], references: [id], onDelete: SetNull)
+  assistReply    AssistReply?  @relation(fields: [assistReplyId], references: [id], onDelete: SetNull)
+}
+
+enum LearningEventType {
+  PROFILE_UPDATED
+  REPLY_SELECTED
+  REPLY_EDITED
+  REPLY_IGNORED
+}
